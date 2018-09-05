@@ -104,7 +104,7 @@ class AddCompetitionFootballClub(APIView):
 			raise Http404
 
 
-	def post(self, request, pk, format=None):
+	def put(self, request, pk, format=None):
 		competition = self.get_competition_object(pk)
 		if type(request.data) is list:
 			for club in request.data:
@@ -205,3 +205,5 @@ class RetrieveFootballClubCompetitionHistoricalTable(APIView):
 		sorted_table = sorted(table, key=itemgetter('points'), reverse=True)
 		final_table = self.sort_by_goal_difference(sorted_table)
 		return Response(final_table)
+
+	permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
