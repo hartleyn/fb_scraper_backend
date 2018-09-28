@@ -8,6 +8,7 @@ from rest_framework import generics
 from django.contrib.auth.models import User
 from rest_framework import permissions
 from operator import itemgetter
+from .helpers import sort_by_goal_difference
 
 
 # Create your views here.
@@ -122,7 +123,7 @@ class RetrieveFootballClubCompetitionSeasons(APIView):
 	@staticmethod
 	def get_football_club_competition_seasons_list(competition_name, football_club_name):
 		try:
-			return CompetitionResult.objects.filter(competition=competition_name.title(), football_club=football_club_name.title()).values_list('season', flat=True)
+			return CompetitionResult.objects.filter(competition=competition_name, football_club=football_club_name).values_list('season', flat=True)
 		except CompetitionResult.DoesNotExist:
 			raise Http404
 
@@ -131,13 +132,12 @@ class RetrieveFootballClubCompetitionSeasons(APIView):
 		return Response(seasons)
 
 
-
 class RetrieveFootballClubCompetitionHistoricalTable(APIView):
 
 	@staticmethod
 	def get_football_club_competition_seasons_table(competition_name, football_club_name):
 		try:
-			return CompetitionResult.objects.filter(competition=competition_name.title(), football_club=football_club_name.title(), played=38).values()
+			return CompetitionResult.objects.filter(competition=competition_name, football_club=football_club_name, played=38).values()
 		except CompetitionResult.DoesNotExist:
 			raise Http404
 
@@ -203,7 +203,28 @@ class RetrieveFootballClubCompetitionHistoricalTable(APIView):
 	def get(self, request, competition_name, football_club_name, format=None):
 		table = self.get_football_club_competition_seasons_table(competition_name, football_club_name)
 		sorted_table = sorted(table, key=itemgetter('points'), reverse=True)
-		final_table = self.sort_by_goal_difference(sorted_table)
+		final_table = sort_by_goal_difference(sorted_table)
+		return Response(final_table)
+
+	permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+
+class RetrieveFootballClubCompetitionMockSuperLeagueTable(APIView):
+
+	@staticmethod
+	def get_unsorted_mock_table(season):
+		try:
+			return CompetitionResult.objects.filter(season=season, league_position__lte=5, played=38).values()
+		except CompetitionResult.DoesNotExist:
+			raise Http404
+
+
+	def get(self, request, season, format=None):
+		season = season.split('-')
+		season = f'{season[0]}/{season[1]}'
+		unsorted_table = self.get_unsorted_mock_table(season)
+		sorted_table = sorted(unsorted_table, key=itemgetter('points'), reverse=True)
+		final_table = sort_by_goal_difference(sorted_table)
 		return Response(final_table)
 
 	permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
